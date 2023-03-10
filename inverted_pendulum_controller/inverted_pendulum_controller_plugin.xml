@@ -1,0 +1,11 @@
+<library path="lib/libinverted_pendulum_controller">
+
+<class name="inverted_pendulum_controller/Controller"
+type="inverted_pendulum_controller::Controller"
+base_class_type="controller_interface::ControllerBase">
+<description>
+The Controller is a test controller to control inverted pendulum.
+</description>
+</class>
+
+</library>
