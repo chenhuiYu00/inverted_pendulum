@@ -21,3 +21,15 @@ inverted_pendulum_controller:
     leg_2:
       joint: joint_2
       pid: { p: 0.1, i: 0.01, d: 0.001 }
+
+    #balance
+    L1: 0.1
+    L2: 0.1
+    m1: 0.00208
+    m2: 0.00208
+    g: 9.8
+    l_c1: 0.02393
+    l_c2: 0.029
+
+    q: [ 0.5, 0.5, 40, 51 ]
+    r: [ 0.5, 0.5 ]

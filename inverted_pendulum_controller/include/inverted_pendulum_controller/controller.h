@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "inverted_pendulum_controller/InvertedPendulumCmd.h"
+#include "inverted_pendulum_msg/InvertedPendulumCmd.h"
+#include "inverted_pendulum_msg/InvertedPendulumState.h"
 
 #include <controller_interface/multi_interface_controller.h>
 #include <effort_controllers/joint_position_controller.h>
@@ -13,6 +14,7 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <nav_msgs/Odometry.h>
 #include <realtime_tools/realtime_publisher.h>
+#include <rm_common/lqr.h>
 
 namespace inverted_pendulum_controller {
 class Controller : public controller_interface::MultiInterfaceController<
@@ -25,18 +27,28 @@ public:
   void starting(const ros::Time & /*time*/) override;
 
 private:
-  void commandCB(
-      const inverted_pendulum_controller::InvertedPendulumCmdConstPtr &data) {
+  void moveJoint(const ros::Time &time, const ros::Duration &period);
+  void
+  commandCB(const inverted_pendulum_msg::InvertedPendulumCmdConstPtr &data) {
     cmd_ = *data;
   }
+  static const int STATE_DIM = 4;   // theta1,theta2,dtheta1,dtheta2
+  static const int CONTROL_DIM = 2; // T1,T2
+  Eigen::Matrix<double, CONTROL_DIM, STATE_DIM> k_{};
+  Eigen::Matrix<double, STATE_DIM, STATE_DIM> a_{}, q_{};
+  Eigen::Matrix<double, STATE_DIM, CONTROL_DIM> b_{};
+  Eigen::Matrix<double, CONTROL_DIM, CONTROL_DIM> r_{};
+  Eigen::Matrix<double, STATE_DIM, 1> x_;
+  double theta_1_des_ = 0;
+  double theta_2_des_ = 0;
 
   hardware_interface::EffortJointInterface *effort_joint_interface_;
-  effort_controllers::JointPositionController ctrl_leg_1_, ctrl_leg_2_;
+  hardware_interface::JointHandle leg_1_handle_, leg_2_handle_;
 
-  inverted_pendulum_controller::InvertedPendulumCmd cmd_;
+  inverted_pendulum_msg::InvertedPendulumCmd cmd_;
   ros::Subscriber cmd_subscriber_;
   typedef std::shared_ptr<realtime_tools::RealtimePublisher<
-      inverted_pendulum_controller::InvertedPendulumCmd>>
+      inverted_pendulum_msg::InvertedPendulumState>>
       RtpublisherPtr;
   RtpublisherPtr leg_state_pub_;
 };
