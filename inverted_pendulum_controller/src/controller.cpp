@@ -104,7 +104,7 @@ bool Controller::init(hardware_interface::RobotHW *robot_hw,
   double b_2_0, b_2_1, b_3_1;
   b_2_0 = 1 / (pow(l_c1, 2) * m1);
   b_2_1 = -1 / (pow(l_c1, 2) * m1);
-  b_3_1 = 1 / (pow(l_c1, 2) * m2);
+  b_3_1 = 1 / (pow(l_c2, 2) * m2);
   b_ << 0., 0., 0., 0., b_2_0, b_2_1, 0., b_3_1;
 
   ROS_INFO_STREAM("A:" << a_);
@@ -146,6 +146,8 @@ bool Controller::init(hardware_interface::RobotHW *robot_hw,
   leg_state_pub_.reset(new realtime_tools::RealtimePublisher<
                        inverted_pendulum_msg::InvertedPendulumState>(
       controller_nh, "leg_states", 100));
+  leg_state_pub_->msg_.position.resize(2);
+  leg_state_pub_->msg_.velocity.resize(2);
 
   return true;
 }
@@ -158,26 +160,23 @@ void Controller::moveJoint(const ros::Time &time, const ros::Duration &period) {
   x_[2] = leg_1_handle_.getVelocity();
   x_[3] = leg_2_handle_.getVelocity();
 
-  double vel_1_cmd = cmd_.leg_1 - x_[0] / (10 * period.toSec());
-  double vel_2_cmd = cmd_.leg_2 - x_[1] / (10 * period.toSec());
-
-  theta_1_des_ -= vel_1_cmd * period.toSec();
-  theta_2_des_ -= vel_2_cmd * period.toSec();
+  double vel_1_cmd = angles::shortest_angular_distance(cmd_.leg_1, x_(0)) /
+                     (10 * period.toSec());
+  double vel_2_cmd = angles::shortest_angular_distance(cmd_.leg_2, x_(1)) /
+                     (10 * period.toSec());
 
   auto x = x_;
-  x(0) = theta_1_des_;
-  x(1) = theta_2_des_;
-  x(3) = vel_1_cmd;
-  x(4) = vel_2_cmd;
+  x(0) -= vel_1_cmd * period.toSec();
+  x(1) -= vel_2_cmd * period.toSec();
+  x(2) -= vel_1_cmd;
+  x(3) -= vel_2_cmd;
   Eigen::Matrix<double, CONTROL_DIM, 1> u;
   u = k_ * (-x);
-
   leg_1_handle_.setCommand(u(0));
   leg_2_handle_.setCommand(u(1));
 }
 
 void Controller::update(const ros::Time &time, const ros::Duration &period) {
-
   if (leg_state_pub_->trylock()) {
     leg_state_pub_->msg_.position[0] = leg_1_handle_.getPosition();
     leg_state_pub_->msg_.position[1] = leg_2_handle_.getPosition();
@@ -187,7 +186,6 @@ void Controller::update(const ros::Time &time, const ros::Duration &period) {
 
     leg_state_pub_->unlockAndPublish();
   }
-
   moveJoint(time, period);
 }
 } // namespace inverted_pendulum_controller

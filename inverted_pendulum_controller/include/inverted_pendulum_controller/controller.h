@@ -7,6 +7,8 @@
 #include "inverted_pendulum_msg/InvertedPendulumCmd.h"
 #include "inverted_pendulum_msg/InvertedPendulumState.h"
 
+#include <angles/angles.h>
+#include <cmath>
 #include <controller_interface/multi_interface_controller.h>
 #include <effort_controllers/joint_position_controller.h>
 #include <geometry_msgs/TwistStamped.h>

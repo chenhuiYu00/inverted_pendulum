@@ -4,6 +4,7 @@
 <transmission name="joint_1_tran">
   <type>transmission_interface/SimpleTransmission</type>
   <joint name="joint_1">
+    <offset>6.902</offset>
     <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
   </joint>
   <actuator name="joint_1_actr">
@@ -15,6 +16,7 @@
 <transmission name="joint_2_tran">
   <type>transmission_interface/SimpleTransmission</type>
   <joint name="joint_2">
+    <offset>5.670</offset>
     <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
   </joint>
   <actuator name="joint_2_actr">
