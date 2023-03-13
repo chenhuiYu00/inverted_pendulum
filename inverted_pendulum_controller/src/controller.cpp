@@ -71,8 +71,10 @@ bool Controller::init(hardware_interface::RobotHW *robot_hw,
                q[i].getType() == XmlRpc::XmlRpcValue::TypeInt);
     if (q[i].getType() == XmlRpc::XmlRpcValue::TypeDouble) {
       q_(i, i) = static_cast<double>(q[i]);
+      q_config_[i] = static_cast<double>(q[i]);
     } else if (q[i].getType() == XmlRpc::XmlRpcValue::TypeInt) {
       q_(i, i) = static_cast<int>(q[i]);
+      q_config_[i] = static_cast<int>(q[i]);
     }
   }
   // Check and get R
@@ -83,8 +85,10 @@ bool Controller::init(hardware_interface::RobotHW *robot_hw,
                r[i].getType() == XmlRpc::XmlRpcValue::TypeInt);
     if (r[i].getType() == XmlRpc::XmlRpcValue::TypeDouble) {
       r_(i, i) = static_cast<double>(r[i]);
+      r_config_[i] = static_cast<double>(r[i]);
     } else if (r[i].getType() == XmlRpc::XmlRpcValue::TypeInt) {
       r_(i, i) = static_cast<int>(r[i]);
+      r_config_[i] = static_cast<int>(r[i]);
     }
   }
 
@@ -146,6 +150,14 @@ bool Controller::init(hardware_interface::RobotHW *robot_hw,
   leg_state_pub_.reset(new realtime_tools::RealtimePublisher<
                        inverted_pendulum_msg::InvertedPendulumState>(
       controller_nh, "leg_states", 100));
+  // dynamic config
+  reconf_server_ =
+      new dynamic_reconfigure::Server<inverted_pendulum_msg::QRConfig>(
+          ros::NodeHandle("~/qr"));
+  dynamic_reconfigure::Server<inverted_pendulum_msg::QRConfig>::CallbackType
+      cb = boost::bind(&Controller::reconfigCB, this, _1);
+  reconf_server_->setCallback(cb);
+
   leg_state_pub_->msg_.position.resize(2);
   leg_state_pub_->msg_.velocity.resize(2);
 
@@ -187,6 +199,43 @@ void Controller::update(const ros::Time &time, const ros::Duration &period) {
     leg_state_pub_->unlockAndPublish();
   }
   moveJoint(time, period);
+}
+
+void Controller::reconfigCB(inverted_pendulum_msg::QRConfig &config) {
+  if (!dynamic_reconfig_initialized_) {
+    config.q_0 = q_config_[0];
+    config.q_1 = q_config_[1];
+    config.q_2 = q_config_[2];
+    config.q_3 = q_config_[3];
+    config.r_0 = r_config_[0];
+    config.r_1 = r_config_[1];
+    dynamic_reconfig_initialized_ = true;
+    return;
+  }
+  ROS_INFO("[QR] Dynamic params change");
+  q_dynamic_[0] = config.q_0;
+  q_dynamic_[1] = config.q_1;
+  q_dynamic_[2] = config.q_2;
+  q_dynamic_[3] = config.q_3;
+  r_dynamic_[0] = config.r_0;
+  r_dynamic_[1] = config.r_1;
+
+  // Update Q
+  for (int i = 0; i < STATE_DIM; ++i) {
+    q_(i, i) = static_cast<double>(q_dynamic_[i]);
+  }
+  // Update R
+  for (int i = 0; i < CONTROL_DIM; ++i) {
+    r_(i, i) = static_cast<double>(r_dynamic_[i]);
+  }
+
+  Lqr<double> lqr(a_, b_, q_, r_);
+  if (!lqr.computeK()) {
+    ROS_ERROR("Failed to compute K of LQR.");
+  }
+
+  k_ = lqr.getK();
+  ROS_INFO_STREAM("K of LQR:" << k_);
 }
 } // namespace inverted_pendulum_controller
 PLUGINLIB_EXPORT_CLASS(inverted_pendulum_controller::Controller,

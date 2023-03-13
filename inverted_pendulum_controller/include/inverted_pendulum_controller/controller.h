@@ -6,6 +6,7 @@
 
 #include "inverted_pendulum_msg/InvertedPendulumCmd.h"
 #include "inverted_pendulum_msg/InvertedPendulumState.h"
+#include "inverted_pendulum_msg/QRConfig.h"
 
 #include <angles/angles.h>
 #include <cmath>
@@ -34,6 +35,7 @@ private:
   commandCB(const inverted_pendulum_msg::InvertedPendulumCmdConstPtr &data) {
     cmd_ = *data;
   }
+  void reconfigCB(inverted_pendulum_msg::QRConfig &config);
   static const int STATE_DIM = 4;   // theta1,theta2,dtheta1,dtheta2
   static const int CONTROL_DIM = 2; // T1,T2
   Eigen::Matrix<double, CONTROL_DIM, STATE_DIM> k_{};
@@ -41,11 +43,15 @@ private:
   Eigen::Matrix<double, STATE_DIM, CONTROL_DIM> b_{};
   Eigen::Matrix<double, CONTROL_DIM, CONTROL_DIM> r_{};
   Eigen::Matrix<double, STATE_DIM, 1> x_;
-  double theta_1_des_ = 0;
-  double theta_2_des_ = 0;
 
   hardware_interface::EffortJointInterface *effort_joint_interface_;
   hardware_interface::JointHandle leg_1_handle_, leg_2_handle_;
+
+  bool dynamic_reconfig_initialized_ = false;
+
+  dynamic_reconfigure::Server<inverted_pendulum_msg::QRConfig> *reconf_server_;
+  double q_dynamic_[STATE_DIM], r_dynamic_[CONTROL_DIM], q_config_[STATE_DIM],
+      r_config_[CONTROL_DIM];
 
   inverted_pendulum_msg::InvertedPendulumCmd cmd_;
   ros::Subscriber cmd_subscriber_;
