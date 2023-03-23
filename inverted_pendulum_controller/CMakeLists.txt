@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         rospy
         std_msgs
+        angles
         controller_interface
         effort_controllers
         dynamic_reconfigure
@@ -18,19 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
         rm_common
         inverted_pendulum_msg
         )
-
-## System dependencies are found with CMake's conventions
-find_package(catkin REQUIRED
-        COMPONENTS
-        roscpp
-
-        rm_common
-
-        controller_interface
-        effort_controllers
-        angles
-        )
-
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
